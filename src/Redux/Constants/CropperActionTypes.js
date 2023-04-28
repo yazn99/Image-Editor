@@ -1,0 +1,7 @@
+export const CropperActionTypes={
+    CROP: "CROP",
+    CROPPING: "CROPPING",
+    UPDATE_WRAP: "UPDATE_WRAP",
+    SETCROP: "SETCROP",
+    SETCROPVALUES: "SETCROPVALUES",
+}

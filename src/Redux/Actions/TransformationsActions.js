@@ -1,24 +1,30 @@
 import { TransformationsActionTypes as Transformations } from "../Constants/TransformationsActionTypes";
 
-const canvas = document.getElementById("canvas");
 
-export const Crop = ({startX,startY,width,height}) => {
+export const Move = ({positionX, positionY}) => {
+    // console.log("dipatching", positionX, positionY)
     return ({
-        type: Transformations.CROP,
+        type: Transformations.MOVE,
         payload: {
-            startX: startX,
-            startY: startY,
-            width: width,
-            height: height,
+            positionX, 
+            positionY
         }
     })
 }
-export const initialCanvasState = ({canvasWidth, canvasHeight}) => {
+export const Zoom = ({positionX, positionY, scale}) => {
+    // console.log("dipatching", positionX, positionY)
     return ({
-        type: Transformations.INITIAL,
+        type: Transformations.ZOOM,
         payload: {
-            canvasWidth,
-            canvasHeight,
+            scale,
+            positionX, 
+            positionY
         }
+    })
+}
+export const Reset = () => {
+    return ({
+        type: Transformations.RESET,
+        payload: {}
     })
 }

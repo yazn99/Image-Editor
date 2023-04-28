@@ -1,0 +1,9 @@
+.cropWrapper {
+  position: absolute !important;
+  overflow: hidden;
+}
+
+.cropSelection {
+  border: 1px solid #ffffff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}/*# sourceMappingURL=Cropper.css.map */

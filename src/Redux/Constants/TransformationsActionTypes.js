@@ -1,4 +1,5 @@
 export const TransformationsActionTypes={
-    CROP: "CROP",
-    INITIAL: "INITIAL"
+    MOVE: "MOVE",
+    ZOOM:"ZOOM",
+    RESET:"RESET",
 }
