@@ -1,11 +1,13 @@
 extern crate wasm_bindgen;
 
 use std::default::Default;
+use std::fs::*;
 use std::ops::Add;
 use std::ops::Mul;
 
 mod transform;
 
+use imagesize::*;
 use min_max::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::Clamped;
@@ -16,12 +18,10 @@ use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
 use photon_rs::*;
 
 pub struct ImageObj {
-    canvas_id: String,
     canvas: HtmlCanvasElement,
     ctx: CanvasRenderingContext2d,
     image: PhotonImage,
     v_image: PhotonImage,
-    original_image: PhotonImage,
     width: u32,
     height: u32,
 }
@@ -76,8 +76,8 @@ impl ImageObj {
         let full_image_height = full_photon_image.get_height() as f64;
 
         //set the canvas size same as the image size
-        let canvas_width = full_image_width ;
-        let canvas_height = full_image_height ;
+        let canvas_width = full_image_width;
+        let canvas_height = full_image_height;
 
         //calculating centering shift values
         // let center_shift_x = (canvas_width - full_image_width * resizing_ratio) / 2.00;
@@ -104,10 +104,8 @@ impl ImageObj {
             .expect("Should put image data on Canvas");
 
         ImageObj {
-            canvas_id: element_id.to_string(),
-            image: full_photon_image.clone(),
             v_image: full_photon_image.clone(),
-            original_image: full_photon_image,
+            image: full_photon_image,
             canvas: main_canvas,
             ctx: main_ctx,
             width: canvas_width as u32,
@@ -126,33 +124,28 @@ impl ImageObj {
 
         let image = open_image(canvas.clone(), ctx.clone());
 
-        //  let js: JsValue = image.get_height().into();
-        //  console::log_1(&js);
-
-        self.image = image.clone();
         self.v_image = image.clone();
-        self.width= image.get_width();
-        self.height= image.get_height();
-
+        self.image = image;
+        self.width = canvas.width();
+        self.height = canvas.height();
+    }
+    fn GetSize(&mut self) -> f64 {
+        let size = (self.image.get_height() * self.image.get_width() * 3 / 8) as f64;
+        return size as f64;
     }
     fn ApplyChanges(&mut self) {
-
         self.image = self.v_image.clone();
-
     }
     fn DiscardChanges(&mut self) {
-        
-        self.v_image= self.image.clone();
+        self.v_image = self.image.clone();
 
         self.DrawImage();
-
     }
-    fn DrawImage(&mut self ) {
-
+    fn DrawImage(&mut self) {
         let mut image_data = self.v_image.get_image_data();
 
-        let canvas_width = self.width ;
-        let canvas_height = self.height ;
+        let canvas_width = self.width;
+        let canvas_height = self.height;
 
         //Resizing canvas befor drawing the image
         self.canvas.set_height(canvas_height as u32);
@@ -161,9 +154,7 @@ impl ImageObj {
         self.ctx
             .put_image_data(&image_data, 0 as f64, 0 as f64)
             .expect("Should put image data on Canvas");
-
     }
-    
 }
 #[wasm_bindgen]
 pub struct Canvas {
@@ -180,14 +171,22 @@ impl Canvas {
     pub fn crop_function(&mut self, start_x: u32, start_y: u32, crop_width: u32, crop_height: u32) {
         self.canvas.crop(start_x, start_y, crop_width, crop_height);
     }
-    pub fn flip_function(&mut self, flipType: &str) {
-        self.canvas.flipH(flipType);
+    pub fn flip_function(&mut self, flip_type: &str) {
+        self.canvas.flip(flip_type);
+    }
+    pub fn rotate_function(&mut self, clockwise: bool) {
+        self.canvas.rotate(clockwise);
     }
     pub fn discard_changes(&mut self) {
         self.canvas.DiscardChanges();
     }
-
     pub fn apply_changes(&mut self) {
         self.canvas.ApplyChanges();
+    }
+    pub fn resize_function(&mut self, width: u32, height: u32, sampling_filter: &str) {
+        self.canvas.resize(width, height);
+    }
+    pub fn get_size(&mut self) -> f64 {
+        return self.canvas.GetSize();
     }
 }

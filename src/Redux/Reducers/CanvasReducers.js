@@ -8,7 +8,10 @@ const cavnasInitialState = {
     scaleRatio: null,
     positionX: 0,
     PositionY: 0,
+    alignment:"c",
     imageObj: new Image(),
+    fileSize: 0,
+    alignment: "c"
 }
 export const CanvasReducers = (state = cavnasInitialState, { type, payload }) => {
     switch (type) {

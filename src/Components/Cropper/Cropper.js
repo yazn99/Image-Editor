@@ -7,7 +7,7 @@ import { Handlers, CropperStyles } from "../../Constants/Cropper"
 import { Move } from '../../Redux/Actions/TransformationsActions';
 import { UpdateCanvas } from '../../Redux/Actions/CanvasActions';
 
-function Cropper({ canvasRef }) {
+function Cropper({ canvasRef, canvasWrapperRef }) {
     const dispatch = useDispatch();
     const cropSelectionRef = useRef();
     const cropSelectionWrapperRef = useRef();
@@ -16,10 +16,11 @@ function Cropper({ canvasRef }) {
     const { CanvasCreated, canvasObj } = canvas;
 
     const cropper = useSelector((state) => state.Cropper)
-    const { wrapperX, wrapperY, wrapperWidth, wrapperHeight, cropping, crop, cropValues } = cropper;
+    const { wrapperX, wrapperY, wrapperWidth, wrapperHeight, cropping, crop, cropValues, ratio } = cropper;
 
     const transformations = useSelector((state) => state.Transformations)
     const { positionX, positionY, scale } = transformations;
+    
 
     // const [cropValues, setCropValues] = useState({
     //     left: 1, top: 0, width: wrapperWidth / 2, height: wrapperHeight / 2
@@ -52,6 +53,27 @@ function Cropper({ canvasRef }) {
         }
     }, [cropValues])
 
+    const calculate_ratio_based = (ratio, w, h, dx, dy) => {
+        let width;
+        let height;
+        if (ratio) {
+            if (dx) {
+                width = w;
+                height = w / ratio;
+            }
+            else if (dy) {
+                width = h * ratio;
+                height = h;
+            }
+        }
+        else {
+            width = w;
+            height = h;
+        }
+
+        return { width, height }
+    }
+
 
     const cropFunction = () => {
         const { left, top, width, height } = cropValues;
@@ -63,6 +85,7 @@ function Cropper({ canvasRef }) {
 
         //calculate new positions
         let canvasBounds = canvasRef.current.getBoundingClientRect();
+        let wrapperBounds = canvasWrapperRef.current.getBoundingClientRect();
 
         let widthOverhang = (realWidth - width) / 2;
 
@@ -71,21 +94,21 @@ function Cropper({ canvasRef }) {
         //console.log(canvasBounds.left)
 
         let newWrapperCoord = {
-            positionX: canvasBounds.left + left - widthOverhang,
-            positionY: canvasBounds.top + top - heightOverhang,
+            positionX: (canvasBounds.left - wrapperBounds.left) + left - widthOverhang,
+            positionY: (canvasBounds.top - wrapperBounds.top) + top - heightOverhang,
         }
 
 
         canvasObj.crop_function(realX, realY, realWidth, realHeight);
 
         dispatch(UpdateCanvas({
-            imageWidth: realHeight,
+            imageWidth: realWidth,
             imageHeight: realHeight
         }))
 
         dispatch(Move({ ...newWrapperCoord }))
 
-        dispatch(UpdateWrapper(canvasBounds.left + left, canvasBounds.top + top, width, height))
+        dispatch(UpdateWrapper((canvasBounds.left - wrapperBounds.left) + left, (canvasBounds.top - wrapperBounds.top) + top, width, height))
 
         let newCoord = {
             width: width - 1.8,
@@ -104,6 +127,7 @@ function Cropper({ canvasRef }) {
             onDrag: ({ memo, args: [activeHandler], movement: [dx, dy], xy: [x, y], cancel, ...rest }) => {
 
                 rest.event.preventDefault();
+                
 
                 memo ??= {
                     bounds: cropValues
@@ -143,104 +167,177 @@ function Cropper({ canvasRef }) {
     )
     const bind = useGesture(
         {
-            onDrag: ({ args: [activeHandler], movement: [mx, my], direction: [dx, dy], ...rest }) => {
+            onDrag: ({ memo, args: [activeHandler], movement: [mx, my], direction: [dx, dy], ...rest }) => {
                 rest.event.preventDefault();
 
-                let cropSelectionBounds = cropSelectionRef.current.getBoundingClientRect();
-                let relativeBounds = {
-                    x: Math.round(cropSelectionBounds.x - wrapperX),
-                    y: cropSelectionBounds.y - wrapperY,
-                    width: cropSelectionBounds.width,
-                    height: cropSelectionBounds.height,
-                }
-                //let widthOverhang= wrapperWidth- selectioBounds.width;
-                let heightOverhang = wrapperHeight - relativeBounds.height;
+                memo ??= {
+                    cropValues: cropValues,
+                    crop: crop
+                };
+                let eRatio= eval(ratio);
 
                 //console.log("selectionBounds",cropSelectionBounds)
                 //0console.log("relativeBounds",relativeBounds)
                 if (activeHandler === "RU") {
-                    //console.log(my)
+
+                    let width = cropValues.width + mx;
+                    let height = cropValues.height - my;
+
+                    if(ratio) {
+                        width = height * eRatio < wrapperWidth? height * eRatio : wrapperWidth;
+                        height = width / eRatio < wrapperHeight ? width / eRatio : wrapperHeight;
+
+                    }
+
                     let newCrop = {
-                        ...crop,
-                        width: cropValues.width + mx,
-                        height: cropValues.height - my,
-                        top: cropValues.top + my
+                        ...memo.crop,
+                        width: width,
+                        height: height,
+                        top: cropValues.top - (height - cropValues.height)
                     }
                     setCrop(newCrop)
-                    //console.log(wrapperHeight - (my + (heightOverhang - selectioBounds.y)))
                 }
                 else if (activeHandler === "RB") {
                     //console.log(mx, my)
-                    let newCrop = {
-                        ...crop,
-                        width: cropValues.width + mx,
-                        height: cropValues.height + my,
+                    let width = cropValues.width + mx;
+                    let height = cropValues.height + my;
 
+                    if(ratio) {
+                        width = height * eRatio < wrapperWidth? height * eRatio : wrapperWidth;
+                        height = width / eRatio < wrapperHeight ? width / eRatio : wrapperHeight;
+
+                    }
+
+                    let newCrop = {
+                        ...memo.crop,
+                        width: width,
+                        height: height,
                     }
                     setCrop(newCrop)
                 }
                 else if (activeHandler === "LB") {
-                    //console.log(mx, my)
+                    let width = cropValues.width - mx;
+                    let height = cropValues.height + my;
+
+                    if(ratio) {
+                        width = height * eRatio < wrapperWidth? height * eRatio : wrapperWidth;
+                        height = width / eRatio < wrapperHeight ? width / eRatio : wrapperHeight;
+
+                    }
+
                     let newCrop = {
-                        ...crop,
-                        width: cropValues.width - mx,
-                        height: cropValues.height + my,
-                        left: cropValues.left + mx
+                        ...memo.crop,
+                        width: width,
+                        height: height,
+                        left: cropValues.left - (width - cropValues.width)
                     }
                     setCrop(newCrop)
                 }
                 else if (activeHandler === "LU") {
-                    //console.log(mx, my)
-                    let newCrop = {
-                        ...crop,
-                        width: cropValues.width - mx,
-                        height: cropValues.height - my,
-                        top: cropValues.top + my,
-                        left: cropValues.left + mx
+                    let width = cropValues.width - mx;
+                    let height = cropValues.height - my;
+
+                    if(ratio) {
+                        width = height * eRatio < wrapperWidth? height * eRatio : wrapperWidth;
+                        height = width / eRatio < wrapperHeight ? width / eRatio : wrapperHeight;
+
                     }
+
+                    let newCrop = {
+                        ...memo.crop,
+                        width: width,
+                        height: height,
+                        top: cropValues.top - (height - cropValues.height),
+                        left: cropValues.left - (width - cropValues.width)
+                    }
+
                     setCrop(newCrop)
                 }
                 else if (activeHandler === "CU") {
-                    //console.log(my)
-                    let newCrop = {
-                        ...crop,
-                        height: cropValues.height - my,
-                        top: cropValues.top + my
-                    }
-                    setCrop(newCrop)
-                    //console.log(wrapperHeight - (my + (heightOverhang - selectioBounds.y)))
-                }
-                else if (activeHandler === "CB") {
-                    //console.log(mx, my)
-                    let newCrop = {
-                        ...crop,
-                        height: cropValues.height + my,
+                    let width = crop.width;
+                    let height = cropValues.height - my;
+
+                    if(ratio) {
+                        width = height * eRatio < wrapperWidth? height * eRatio : wrapperWidth;
+                        height = width / eRatio < wrapperHeight ? width / eRatio : wrapperHeight;
 
                     }
+
+                    let newCrop = {
+                        ...memo.crop,
+                        height: height,
+                        width: width,
+                        top: cropValues.top - (height - cropValues.height),
+                    }
+                    
+                    setCrop(newCrop)
+                    //console.log(my)
+                }
+                else if (activeHandler === "CB") {
+                    let width = crop.width;
+                    let height = cropValues.height + my;
+
+                    if(ratio) {
+                        width = height * eRatio < wrapperWidth? height * eRatio : wrapperWidth;
+                        height = width / eRatio < wrapperHeight ? width / eRatio : wrapperHeight;
+
+                    }
+
+                    let newCrop = {
+                        ...memo.crop,
+                        height: height,
+                        width: width,
+                    }
+                    
                     setCrop(newCrop)
                 }
                 else if (activeHandler === "CL") {
-                    //console.log(mx, my)
-                    let newCrop = {
-                        ...crop,
-                        width: cropValues.width - mx,
-                        left: cropValues.left + mx
+                    
+                    let width = cropValues.width - mx;
+                    let height = crop.height;
+
+                    if(ratio) {
+                        height = width / eRatio < wrapperHeight ? width / eRatio : wrapperHeight;
+                        width = height * eRatio < wrapperWidth? height * eRatio : wrapperWidth;
+
                     }
+
+                    let newCrop = {
+                        ...memo.crop,
+                        height: height,
+                        width: width,
+                    }
+                    
                     setCrop(newCrop)
+
                 }
                 else if (activeHandler === "CR") {
-                    //console.log(mx, my)
-                    let newCrop = {
-                        ...crop,
-                        width: cropValues.width + mx,
+                    let width = cropValues.width + mx;
+                    let height = crop.height;
+
+                    if(ratio) {
+                        height = width / eRatio < wrapperHeight ? width / eRatio : wrapperHeight;
+                        width = height * eRatio < wrapperWidth? height * eRatio : wrapperWidth;
+
                     }
+
+                    let newCrop = {
+                        ...memo.crop,
+                        height: height,
+                        width: width,
+                    }
+                    
                     setCrop(newCrop)
                 }
 
             },
-            onDragEnd: ({ args: [activeHandler], movement: [mx, my], direction: [dx, dy], ...rest }) => {
+            onDragEnd: ({ memo, args: [activeHandler], movement: [mx, my], direction: [dx, dy], ...rest }) => {
                 //console.log(crop)
-                setCropValues({ ...crop })
+                memo ??= {
+                    cropValues: cropValues,
+                    crop: crop
+                };
+                setCropValues({ ...memo.crop })
             },
         },
         {
@@ -290,7 +387,7 @@ function Cropper({ canvasRef }) {
         }
     )
 
-    //console.log(crop)
+    //console.log(wrapperWidth,wrapperHeight)
     return (
         <div ref={cropSelectionWrapperRef} className='cropWrapper' style={{
             left: wrapperX,
@@ -310,10 +407,10 @@ function Cropper({ canvasRef }) {
                         <img {...bind("LU")} src={Handlers.Corner_Handler} style={HandlersStyles.LU_Handler} />
                         <img {...bind("LB")} src={Handlers.Corner_Handler} style={HandlersStyles.LB_Handler} />
                         {/* Border Handlers */}
-                        {(crop.width > 200) && <img {...bind("CU")} src={Handlers.Border_Handler} style={HandlersStyles.CU_Handler} />}
-                        {(crop.width > 200) && <img {...bind("CB")} src={Handlers.Border_Handler} style={HandlersStyles.CB_Handler} />}
-                        {(crop.height > 200) && <img {...bind("CL")} src={Handlers.Border_Handler} style={HandlersStyles.CL_Handler} />}
-                        {(crop.height > 200) && <img {...bind("CR")} src={Handlers.Border_Handler} style={HandlersStyles.CR_Handler} />}
+                        {(crop.width > 100) && <img {...bind("CU")} src={Handlers.Border_Handler} style={HandlersStyles.CU_Handler} />}
+                        {(crop.width > 100) && <img {...bind("CB")} src={Handlers.Border_Handler} style={HandlersStyles.CB_Handler} />}
+                        {(crop.height > 100) && <img {...bind("CL")} src={Handlers.Border_Handler} style={HandlersStyles.CL_Handler} />}
+                        {(crop.height > 100) && <img {...bind("CR")} src={Handlers.Border_Handler} style={HandlersStyles.CR_Handler} />}
                         {/* Line Guidelines */}
                         {<div {...selectionBind()} className='ruleOfThirds' style={GuideLinesWrapperStyles}>
                             <div src={Handlers.Line_Guideline} style={GuideLinesStyles.HU_Line} />

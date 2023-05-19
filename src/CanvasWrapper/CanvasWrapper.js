@@ -22,7 +22,7 @@ function CanvasWrapper() {
     const { canvasCreated, imageWidth, imageHeight, canvasObj, imageObj } = canvasState;
 
     const cropper = useSelector((state) => state.Cropper)
-    const { cropping } = cropper;
+    const { cropping, wrapperX, wrapperY } = cropper;
 
     const transformations = useSelector((state) => state.Transformations)
     const { positionX, positionY, scale } = transformations;
@@ -30,6 +30,13 @@ function CanvasWrapper() {
     const dispatch = useDispatch();
 
 
+    useEffect(() => {
+        dispatch(UpdateCanvas({
+            canvasWrapperRef,
+            canvasRef
+        }))
+
+    }, [])
     useEffect(() => {
         init().then(() => {
 
@@ -57,17 +64,20 @@ function CanvasWrapper() {
     const fitToWrapper = (imageWidth, imageHeight) => {
         
         let wrapperBounds = canvasWrapperRef.current.getBoundingClientRect();
+        let canvasBounds = canvasRef.current.getBoundingClientRect();
 
         let h_ratio = wrapperBounds.width / imageWidth;
         let v_ratio = wrapperBounds.height / imageHeight;
 
         let ratio = Math.min(h_ratio, v_ratio);
+        //console.log(canvasBounds.width, imageWidth * ratio)
 
         //calculating centering shift values
         let center_shift_x = (wrapperBounds.width - imageWidth * ratio) / 2.00;
         let center_shift_y = (wrapperBounds.height - imageHeight * ratio) / 2.00;
 
         let originalWidth = canvasRef.current.clientWidth;
+        //console.log(originalWidth)
         let widthOverhang = (imageWidth * ratio - originalWidth) / 2;
 
         let originalHeight = canvasRef.current.clientHeight;
@@ -78,8 +88,9 @@ function CanvasWrapper() {
             positionY: center_shift_y + heightOverhang,
             scale: ratio,
         }))
+        
         dispatch(UpdateWrapper(center_shift_x, center_shift_y, originalWidth * ratio, originalHeight * ratio))
-        //console.log(widthOverhang)
+        //console.log(center_shift_x, center_shift_y)
 }
     useEffect(() => {
         window.addEventListener('keydown', handleSpaceDown);
@@ -130,20 +141,22 @@ function CanvasWrapper() {
         let heightOverhang = (canvasBounds.height - originalHeight) / 2;
 
         let { x, y, width, height } = canvasBounds;
-        //console.log(positionX, positionY)
+        //console.log(y, wrapperBounds.y)
+        let relativeX= x-wrapperBounds.x;
+        let relativeY= y-wrapperBounds.y;
 
         if (operation == "dragging") {
             //console.log(positionX)
-            if (x !== positionX) {
-                x = positionX - widthOverhang;
+            if (relativeX !== positionX) {
+                relativeX = positionX - widthOverhang;
             }
-            if (y !== positionY) {
-                y = positionY - heightOverhang;
+            if (relativeY !== positionY) {
+                relativeY = positionY - heightOverhang;
             }
         }
 
 
-        dispatch(UpdateWrapper(x, y, width, height))
+        dispatch(UpdateWrapper(relativeX, relativeY, width, height))
         // console.log(x, y)
         // console.log(widthOverhang, heightOverhang)
 
@@ -232,6 +245,9 @@ function CanvasWrapper() {
             let maxDim= Math.max(imageHeight, imageWidth);
 
             if (tempScale > (100/maxDim) && tempScale < Math.round(20000/maxDim)) {
+                // console.log("zooming: ",memo.canvasState.positionY + displacementY * d  )
+                // console.log("wrapper: ", wrapperY  )
+                //dispatch(UpdateWrapper(memo.canvasState.positionX + displacementX * d, memo.canvasState.positionY + displacementY * d))
                 dispatch(Zoom({
                     positionX: memo.canvasState.positionX + displacementX * d,
                     positionY: memo.canvasState.positionY + displacementY * d,
@@ -288,7 +304,7 @@ function CanvasWrapper() {
                 <Canvas />
             </div>
             {
-                cropping && !transforming && <Cropper canvasRef={canvasRef} />
+                cropping && !transforming && <Cropper canvasRef={canvasRef} canvasWrapperRef={canvasWrapperRef} />
             }
         </div>
 

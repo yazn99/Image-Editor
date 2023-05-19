@@ -8,6 +8,7 @@ const cropperInitialState = {
     cropping: false,
     crop: {},
     cropValues: {},
+    ratio: "2/1",
 }
 export const CropperReducers = (state = cropperInitialState, { type, payload }) => {
     switch (type) {
@@ -18,10 +19,21 @@ export const CropperReducers = (state = cropperInitialState, { type, payload }) 
             }
         }
         case CropperActionTypes.CROPPING: {
+
+            let width= state.wrapperWidth;
+            let height= state.wrapperHeight;
+
+            let ratio= eval(state.ratio)
+            
+            if (state.ratio) {
+                width = height * ratio < state.wrapperWidth? height * ratio : state.wrapperWidth;
+                height = width / ratio < state.wrapperHeight ? width / ratio : state.wrapperHeight;
+
+            }
             return {
                 ...state,
-                crop: { left: 1, top: 0, width: state.wrapperWidth / 2, height: state.wrapperHeight / 2 },
-                cropValues: { left: 1, top: 0, width: state.wrapperWidth / 2, height: state.wrapperHeight / 2 },
+                crop: { left: 0, top: 0, width, height },
+                cropValues: { left: 0, top: 0, width, height },
                 ...payload,
             }
         }
@@ -35,6 +47,25 @@ export const CropperReducers = (state = cropperInitialState, { type, payload }) 
             return {
                 ...state,
                 cropValues: payload,
+            }
+        }
+        case CropperActionTypes.SETRATIO: {
+            
+            let width= state.wrapperWidth;
+            let height= state.wrapperHeight;
+
+            let ratio= eval(state.ratio)
+            
+            if (state.ratio) {
+                width = height * ratio < state.wrapperWidth? height * ratio : state.wrapperWidth;
+                height = width / ratio < state.wrapperHeight ? width / ratio : state.wrapperHeight;
+
+            }
+            return {
+                ...state,
+                crop: { left: 0, top: 0, width, height },
+                cropValues: { left: 0, top: 0, width, height },
+                ...payload,
             }
         }
         case CropperActionTypes.CROP: {

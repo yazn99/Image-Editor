@@ -21,6 +21,15 @@ export const SetCropping = (cropping) => {
         }
     })
 }
+export const SetRatio= (ratio) => {
+    //console.log(cropping)
+    return ({
+        type: Cropper.SETRATIO,
+        payload: {
+            ratio
+        }
+    })
+}
 export const SetCrop = (crop) => {
     //console.log(cropping)
     return ({

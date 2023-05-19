@@ -4,4 +4,5 @@ export const CropperActionTypes={
     UPDATE_WRAP: "UPDATE_WRAP",
     SETCROP: "SETCROP",
     SETCROPVALUES: "SETCROPVALUES",
+    SETRATIO: "SETRATIO",
 }

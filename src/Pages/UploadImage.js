@@ -29,6 +29,10 @@ function UploadImage() {
     };
 
     const handleUpload = (info) => {
+        //console.log(info.file)
+        dispatch(UpdateCanvas({
+            imageName: info.file.name
+        }))
 
         const imgObject = new Image();
 
@@ -46,7 +50,8 @@ function UploadImage() {
                     dispatch(SetCropping(false))
                     dispatch(UpdateWrapper(0, 0, imgObject.width, imgObject.height))
                     dispatch(UpdateCanvas({
-                        imageObj: imgObject
+                        imageObj: imgObject,
+                        //fileSize: info.file.size/(1024*1024),
                     }))
 
                 }
@@ -57,12 +62,12 @@ function UploadImage() {
         if (status === 'done') {
             setTimeout(() => {
                 navigate("/editor")
-              }, 500);
-            
+            }, 500);
+
         } else if (status === 'error') {
             setTimeout(() => {
                 navigate("/editor")
-              }, 500);
+            }, 500);
         }
     }
 
@@ -86,9 +91,12 @@ function UploadImage() {
                     <div className="text-light-accent/75 text-sm capitalize">
                         Or upload it from your files
                     </div>
-                    <button className="btn-primary">
-                        Upload
-                    </button>
+                    <Upload showUploadList={false} {...uploadProps}>
+                        <button className="btn-primary">
+                            Upload
+                        </button>
+                    </Upload>
+
                 </div>
             </div>
         </div >

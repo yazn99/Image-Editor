@@ -5,7 +5,7 @@ export const CreateCanvas = (imageWidth, imageHeight, wrapperBounds) => {
 
     const canvasObj = new Canvas("canvas");
 
-    //console.log(imageWidth, imageHeight)
+    //console.log("size", canvasObj.get_size())
 
     return ({
         type: CanvasActionTypes.CREATE,
@@ -14,6 +14,7 @@ export const CreateCanvas = (imageWidth, imageHeight, wrapperBounds) => {
             imageWidth,
             imageHeight,
             wrapperBounds,
+            fileSize: canvasObj.get_size()/(1024*1024),
         }
     })
 }
